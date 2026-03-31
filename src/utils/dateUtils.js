@@ -1,16 +1,23 @@
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, format, isSameMonth, isSameDay,
-  addMonths, subMonths, isToday, parseISO, isBefore, isAfter,
-  startOfDay, endOfDay, addDays
+  addMonths, subMonths, addWeeks, subWeeks, addDays,
+  isToday, parseISO, isBefore, isAfter,
+  startOfDay, endOfDay
 } from 'date-fns';
 
 export function getCalendarDays(date) {
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
-  const calStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday start
+  const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   return eachDayOfInterval({ start: calStart, end: calEnd });
+}
+
+export function getWeekDays(date) {
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
+  return eachDayOfInterval({ start: weekStart, end: weekEnd });
 }
 
 export function getEventsForDay(events, day) {
@@ -50,4 +57,7 @@ export function getUpcomingEvents(events, count = 5) {
     .slice(0, count);
 }
 
-export { format, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO, addDays };
+export {
+  format, isSameMonth, isSameDay, isToday, parseISO,
+  addMonths, subMonths, addWeeks, subWeeks, addDays
+};
