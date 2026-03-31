@@ -79,16 +79,7 @@ const styles = {
     transition: 'all 0.15s ease',
     lineHeight: 1.5,
   },
-  eventChip1: {
-    background: 'var(--accent-1-soft)',
-    color: 'var(--accent-1)',
-    borderLeft: '2px solid var(--accent-1)',
-  },
-  eventChip2: {
-    background: 'var(--accent-2-soft)',
-    color: 'var(--accent-2)',
-    borderLeft: '2px solid var(--accent-2)',
-  },
+  // Dynamic colors applied inline via getChipStyle()
   moreText: {
     fontSize: '0.65rem',
     color: 'var(--text-muted)',
@@ -170,6 +161,15 @@ const styles = {
   },
 };
 
+function getChipStyle(color) {
+  const c = color || 'accent-1';
+  return {
+    background: `var(--${c}-soft)`,
+    color: `var(--${c})`,
+    borderLeft: `2px solid var(--${c})`,
+  };
+}
+
 export default function CalendarGrid({ currentDate, events }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const days = getCalendarDays(currentDate);
@@ -212,10 +212,10 @@ export default function CalendarGrid({ currentDate, events }) {
                     key={event.id}
                     style={{
                       ...styles.eventChip,
-                      ...(event.person?.color === 'accent-2' ? styles.eventChip2 : styles.eventChip1),
+                      ...getChipStyle(event.person?.color),
                       animationDelay: `${j * 50}ms`,
                     }}
-                    title={`${event.title} — ${event.person?.name || ''}`}
+                    title={`${event.title} — ${event.person?.name || ''}${event.calendarLabel ? ' · ' + event.calendarLabel : ''}`}
                   >
                     {event.title}
                   </div>
@@ -240,18 +240,20 @@ export default function CalendarGrid({ currentDate, events }) {
             {getEventsForDay(events, selectedDay).length === 0 ? (
               <div style={styles.noEvents}>No events scheduled</div>
             ) : (
-              getEventsForDay(events, selectedDay).map(event => (
+              getEventsForDay(events, selectedDay).map(event => {
+                const c = event.person?.color || 'accent-1';
+                return (
                 <div
                   key={event.id}
                   style={{
                     ...styles.modalEvent,
-                    background: event.person?.color === 'accent-2' ? 'var(--accent-2-soft)' : 'var(--accent-1-soft)',
-                    borderLeft: `3px solid var(--${event.person?.color || 'accent-1'})`,
+                    background: `var(--${c}-soft)`,
+                    borderLeft: `3px solid var(--${c})`,
                   }}
                 >
                   <div style={{
                     ...styles.modalEventTitle,
-                    color: `var(--${event.person?.color || 'accent-1'})`,
+                    color: `var(--${c})`,
                   }}>
                     {event.title}
                   </div>
@@ -262,9 +264,12 @@ export default function CalendarGrid({ currentDate, events }) {
                   {event.description && (
                     <div style={styles.modalEventDesc}>{event.description}</div>
                   )}
-                  <div style={styles.modalEventPerson}>{event.person?.name}</div>
+                  <div style={styles.modalEventPerson}>
+                    {event.person?.name}{event.calendarLabel ? ` · ${event.calendarLabel}` : ''}
+                  </div>
                 </div>
-              ))
+                );
+              })
             )}
             <button
               style={styles.closeBtn}

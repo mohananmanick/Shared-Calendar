@@ -14,6 +14,15 @@
   --accent-2: #4ecdc4;
   --accent-2-soft: rgba(78, 205, 196, 0.12);
   --accent-2-glow: rgba(78, 205, 196, 0.25);
+  --accent-3: #a78bfa;
+  --accent-3-soft: rgba(167, 139, 250, 0.12);
+  --accent-3-glow: rgba(167, 139, 250, 0.25);
+  --accent-4: #f59e0b;
+  --accent-4-soft: rgba(245, 158, 11, 0.12);
+  --accent-4-glow: rgba(245, 158, 11, 0.25);
+  --accent-5: #ec4899;
+  --accent-5-soft: rgba(236, 72, 153, 0.12);
+  --accent-5-glow: rgba(236, 72, 153, 0.25);
   --today-ring: #ffd93d;
   --today-bg: rgba(255, 217, 61, 0.06);
   --font-display: 'Fraunces', serif;

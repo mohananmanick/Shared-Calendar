@@ -120,24 +120,54 @@ function getRelativeDay(dateStr) {
   return format(date, 'EEE, MMM d');
 }
 
-export default function Sidebar({ events, persons, telegramBotUrl }) {
+export default function Sidebar({ events, persons, calendars, telegramBotUrl }) {
   const upcoming = getUpcomingEvents(events, 6);
+
+  // Group calendars by person
+  const calsByPerson = {};
+  if (calendars && calendars.length > 0) {
+    calendars.forEach(c => {
+      if (!calsByPerson[c.person]) calsByPerson[c.person] = [];
+      calsByPerson[c.person].push(c);
+    });
+  }
 
   return (
     <div style={styles.sidebar}>
       {/* Legend */}
       <div style={styles.card}>
-        <div style={styles.cardTitle}>People</div>
+        <div style={styles.cardTitle}>Calendars</div>
         <div style={styles.legend}>
-          {persons.map(p => (
-            <div key={p.name} style={styles.legendItem}>
-              <div style={{
-                ...styles.legendDot,
-                background: `var(--${p.color})`,
-                boxShadow: `0 0 8px var(--${p.color}-glow)`,
-              }} />
-              <span style={styles.legendName}>{p.name}</span>
-            </div>
+          {Object.keys(calsByPerson).length > 0 ? (
+            Object.entries(calsByPerson).map(([person, cals]) => (
+              <div key={person} style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                  {person}
+                </div>
+                {cals.map(c => (
+                  <div key={c.label} style={{ ...styles.legendItem, marginBottom: '4px' }}>
+                    <div style={{
+                      ...styles.legendDot,
+                      background: `var(--${c.color})`,
+                      boxShadow: `0 0 8px var(--${c.color}-glow)`,
+                    }} />
+                    <span style={styles.legendName}>{c.label}</span>
+                  </div>
+                ))}
+              </div>
+            ))
+          ) : (
+            persons.map(p => (
+              <div key={p.name} style={styles.legendItem}>
+                <div style={{
+                  ...styles.legendDot,
+                  background: `var(--${p.color})`,
+                  boxShadow: `0 0 8px var(--${p.color}-glow)`,
+                }} />
+                <span style={styles.legendName}>{p.name}</span>
+              </div>
+            ))
+          )}
           ))}
         </div>
       </div>
@@ -168,6 +198,7 @@ export default function Sidebar({ events, persons, telegramBotUrl }) {
                   <div style={styles.upcomingMeta}>
                     {getRelativeDay(event.start)} · {formatEventTime(event.start)}
                     {event.person && ` · ${event.person.name}`}
+                    {event.calendarLabel && ` · ${event.calendarLabel}`}
                   </div>
                 </div>
               </div>
