@@ -91,6 +91,7 @@ export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState(demoEvents);
   const [isConnected, setIsConnected] = useState(false);
+  const [calendars, setCalendars] = useState([]);
   const isMobile = useMediaQuery('(max-width: 900px)');
 
   const persons = [PERSON_1, PERSON_2];
@@ -105,6 +106,8 @@ export default function App() {
           setEvents(data.events);
           setIsConnected(true);
         }
+        if (data.calendars) {
+          setCalendars(data.calendars);
       }
     } catch (err) {
       // API not available, use demo events
@@ -161,6 +164,7 @@ export default function App() {
         <Sidebar
           events={events}
           persons={persons}
+          calendars={calendars}
           telegramBotUrl={null} // Will be set once bot is created
         />
       </div>
