@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   }
 
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, VERCEL_URL } = process.env;
-  const redirectUri = `https://${VERCEL_URL}/api/auth/callback`;
+  const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

@@ -1,8 +1,8 @@
 // /api/auth/login.js — Redirects to Google OAuth consent screen
 
 export default async function handler(req, res) {
-  const { GOOGLE_CLIENT_ID, VERCEL_URL } = process.env;
-  const redirectUri = `https://${VERCEL_URL}/api/auth/callback`;
+  const { GOOGLE_CLIENT_ID } = process.env;
+  const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
 
   const scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',
