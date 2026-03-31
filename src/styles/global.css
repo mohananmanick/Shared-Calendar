@@ -1,0 +1,107 @@
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #12121a;
+  --bg-elevated: #1a1a26;
+  --bg-hover: #22222f;
+  --border: #2a2a3a;
+  --border-subtle: #1e1e2e;
+  --text-primary: #e8e6f0;
+  --text-secondary: #8a87a0;
+  --text-muted: #5a586a;
+  --accent-1: #ff6b6b;
+  --accent-1-soft: rgba(255, 107, 107, 0.12);
+  --accent-1-glow: rgba(255, 107, 107, 0.25);
+  --accent-2: #4ecdc4;
+  --accent-2-soft: rgba(78, 205, 196, 0.12);
+  --accent-2-glow: rgba(78, 205, 196, 0.25);
+  --today-ring: #ffd93d;
+  --today-bg: rgba(255, 217, 61, 0.06);
+  --font-display: 'Fraunces', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --shadow-soft: 0 2px 20px rgba(0,0,0,0.3);
+  --shadow-glow-1: 0 0 20px var(--accent-1-glow);
+  --shadow-glow-2: 0 0 20px var(--accent-2-glow);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255, 107, 107, 0.04), transparent),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(78, 205, 196, 0.04), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: var(--accent-2-soft);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes todayPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--today-ring), 0 0 12px rgba(255, 217, 61, 0.15); }
+  50% { box-shadow: 0 0 0 2px var(--today-ring), 0 0 20px rgba(255, 217, 61, 0.25); }
+}
