@@ -168,7 +168,6 @@ export default function Sidebar({ events, persons, calendars, telegramBotUrl }) 
               </div>
             ))
           )}
-          ))}
         </div>
       </div>
 
