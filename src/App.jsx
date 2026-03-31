@@ -109,6 +109,7 @@ export default function App() {
         if (data.calendars) {
           setCalendars(data.calendars);
       }
+     }                        
     } catch (err) {
       // API not available, use demo events
       console.log('Using demo events (API not connected)');
