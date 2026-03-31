@@ -1,28 +1,67 @@
 // /api/events.js — Vercel serverless function
-// Fetches events from Google Calendar for both persons, including sub-calendars
+// Fetches events from Google Calendar with auto token refresh
+
+// In-memory token cache (persists across warm invocations on same Vercel instance)
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getValidToken() {
+  const { GOOGLE_ACCESS_TOKEN, GOOGLE_REFRESH_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+
+  // If we have a cached token that hasn't expired, use it
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
+
+  // Try to refresh using the refresh token
+  if (GOOGLE_REFRESH_TOKEN && GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    try {
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          refresh_token: GOOGLE_REFRESH_TOKEN,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      const tokens = await tokenRes.json();
+
+      if (tokens.access_token) {
+        cachedToken = tokens.access_token;
+        // Expire 5 minutes early to avoid edge cases
+        tokenExpiry = Date.now() + ((tokens.expires_in - 300) * 1000);
+        return cachedToken;
+      }
+    } catch (err) {
+      console.error('Token refresh failed:', err);
+    }
+  }
+
+  // Fallback to the env var token
+  return GOOGLE_ACCESS_TOKEN;
+}
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   const { GOOGLE_ACCESS_TOKEN, CALENDAR_ID_1, PERSON_1_NAME, PERSON_2_NAME } = process.env;
 
-  if (!GOOGLE_ACCESS_TOKEN) {
+  if (!GOOGLE_ACCESS_TOKEN && !process.env.GOOGLE_REFRESH_TOKEN) {
     return res.status(200).json({
       events: [],
       calendars: [],
-      message: 'Google Calendar not connected. Using demo events on frontend.',
+      message: 'Google Calendar not connected.',
     });
   }
 
-  // Define all calendars
-  // Person 1 (Mohan) - main calendar
   const person1Calendars = [
     { id: CALENDAR_ID_1, label: 'Mohan', color: 'accent-1', person: PERSON_1_NAME || 'Mohan' },
   ];
 
-  // Person 2 (Shreya) - main + sub-calendars, each with a unique color
   const person2Calendars = [
     { id: 'gejashreya@gmail.com', label: 'Main', color: 'accent-2', person: PERSON_2_NAME || 'Shreya' },
     { id: 'dceb8f398265fdef016630832be610b18467c5a410904b021da393f6ed9358d4@group.calendar.google.com', label: 'Socialising', color: 'accent-3', person: PERSON_2_NAME || 'Shreya' },
@@ -33,19 +72,28 @@ export default async function handler(req, res) {
   const allCalendars = [...person1Calendars, ...person2Calendars];
 
   try {
+    const accessToken = await getValidToken();
     const now = new Date();
     const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const timeMax = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
 
-    const fetchCalendar = async (cal) => {
+    const fetchCalendar = async (cal, token, isRetry = false) => {
       if (!cal.id) return [];
 
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?` +
         `timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=250`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${GOOGLE_ACCESS_TOKEN}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
+
+      // If token expired (401), force refresh and retry once
+      if (response.status === 401 && !isRetry) {
+        cachedToken = null;
+        tokenExpiry = 0;
+        const newToken = await getValidToken();
+        return fetchCalendar(cal, newToken, true);
+      }
 
       if (!response.ok) {
         console.error(`Calendar API error for ${cal.label} (${cal.id}):`, response.status);
@@ -64,10 +112,9 @@ export default async function handler(req, res) {
       }));
     };
 
-    const results = await Promise.all(allCalendars.map(fetchCalendar));
+    const results = await Promise.all(allCalendars.map(cal => fetchCalendar(cal, accessToken)));
     const allEvents = results.flat().sort((a, b) => new Date(a.start) - new Date(b.start));
 
-    // Send calendar metadata for the frontend legend
     const calendarMeta = allCalendars.map(c => ({
       label: c.label,
       color: c.color,

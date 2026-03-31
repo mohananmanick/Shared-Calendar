@@ -1,14 +1,49 @@
 // /api/telegram.js — Telegram bot webhook handler
 // Receives messages, uses Claude to parse natural language into calendar events,
-// then creates them on Google Calendar
+// then creates them on Google Calendar. Auto-refreshes tokens.
+
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getValidToken() {
+  const { GOOGLE_ACCESS_TOKEN, GOOGLE_REFRESH_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
+
+  if (GOOGLE_REFRESH_TOKEN && GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    try {
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          refresh_token: GOOGLE_REFRESH_TOKEN,
+          grant_type: 'refresh_token',
+        }),
+      });
+      const tokens = await tokenRes.json();
+      if (tokens.access_token) {
+        cachedToken = tokens.access_token;
+        tokenExpiry = Date.now() + ((tokens.expires_in - 300) * 1000);
+        return cachedToken;
+      }
+    } catch (err) {
+      console.error('Token refresh failed:', err);
+    }
+  }
+
+  return GOOGLE_ACCESS_TOKEN;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY, GOOGLE_ACCESS_TOKEN, CALENDAR_ID_1, CALENDAR_ID_2 } = process.env;
-  // Allowed Telegram user IDs (comma-separated in env var)
+  const { TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY, CALENDAR_ID_1 } = process.env;
   const ALLOWED_USERS = (process.env.ALLOWED_TELEGRAM_USERS || '').split(',').map(s => s.trim());
 
   const update = req.body;
@@ -22,13 +57,11 @@ export default async function handler(req, res) {
   const userId = String(message.from.id);
   const text = message.text;
 
-  // Simple auth check
   if (ALLOWED_USERS.length > 0 && ALLOWED_USERS[0] !== '' && !ALLOWED_USERS.includes(userId)) {
     await sendTelegramMessage(TELEGRAM_BOT_TOKEN, chatId, '⛔ Sorry, you are not authorized to use this bot.');
     return res.status(200).json({ ok: true });
   }
 
-  // Handle /start command
   if (text === '/start') {
     await sendTelegramMessage(TELEGRAM_BOT_TOKEN, chatId,
       `👋 Hi! I'm your calendar bot.\n\n` +
@@ -42,7 +75,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // Handle /help command
   if (text === '/help') {
     await sendTelegramMessage(TELEGRAM_BOT_TOKEN, chatId,
       `📖 Commands:\n` +
@@ -54,10 +86,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // Handle /today command
   if (text === '/today') {
     try {
-      const events = await getTodayEvents(GOOGLE_ACCESS_TOKEN, CALENDAR_ID_1);
+      const token = await getValidToken();
+      const events = await getTodayEvents(token, CALENDAR_ID_1);
       if (events.length === 0) {
         await sendTelegramMessage(TELEGRAM_BOT_TOKEN, chatId, '📅 No events today!');
       } else {
@@ -80,7 +112,7 @@ export default async function handler(req, res) {
     await sendTelegramMessage(TELEGRAM_BOT_TOKEN, chatId, '🔄 Parsing your event...');
 
     const now = new Date();
-    const timezone = 'Asia/Singapore'; // Adjust to your timezone
+    const timezone = 'Asia/Singapore';
 
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -118,7 +150,8 @@ If you cannot parse an event, respond: {"error": "reason"}`,
     }
 
     // Create Google Calendar event
-    const calendarId = CALENDAR_ID_1; // Default to person 1's calendar
+    const token = await getValidToken();
+    const calendarId = CALENDAR_ID_1;
     let eventBody;
 
     if (parsed.allDay) {
@@ -148,7 +181,7 @@ If you cannot parse an event, respond: {"error": "reason"}`,
       {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${GOOGLE_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(eventBody),
@@ -162,7 +195,6 @@ If you cannot parse an event, respond: {"error": "reason"}`,
       return res.status(200).json({ ok: true });
     }
 
-    const created = await gcalRes.json();
     const timeStr = parsed.allDay
       ? `📅 ${parsed.date}`
       : `🕐 ${parsed.startTime} — ${parsed.endTime}`;
@@ -198,9 +230,9 @@ async function getTodayEvents(accessToken, calendarId) {
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?` +
     `timeMin=${startOfDay}&timeMax=${endOfDay}&singleEvents=true&orderBy=startTime`;
 
-  const res = await fetch(url, {
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  const data = await res.json();
+  const data = await response.json();
   return data.items || [];
 }
