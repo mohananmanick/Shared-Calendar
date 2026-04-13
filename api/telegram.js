@@ -230,8 +230,10 @@ IMPORTANT: When matching events, be flexible with titles. "dentist" should match
   const data = await claudeRes.json();
 
   if (data.error) {
-    console.error('Claude API error:', data.error);
-    return { action: 'unknown', message: 'AI service error — please try again' };
+    console.error('Claude API error:', JSON.stringify(data.error));
+    const errType = data.error?.type || 'unknown';
+    const errMsg = data.error?.message || 'unknown error';
+    return { action: 'unknown', message: `AI service error (${errType}): ${errMsg}` };
   }
 
   try {
