@@ -220,7 +220,7 @@ IMPORTANT: When matching events, be flexible with titles. "dentist" should match
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
       system: systemPrompt,
       messages: [{ role: 'user', content: text }],
@@ -228,9 +228,19 @@ IMPORTANT: When matching events, be flexible with titles. "dentist" should match
   });
 
   const data = await claudeRes.json();
+
+  if (data.error) {
+    console.error('Claude API error:', data.error);
+    return { action: 'unknown', message: 'AI service error — please try again' };
+  }
+
   try {
-    return JSON.parse(data.content[0].text);
-  } catch {
+    const raw = data.content[0].text.trim();
+    // Strip markdown code fences if the model wraps the JSON
+    const cleaned = raw.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error('Failed to parse Claude response:', data.content?.[0]?.text, err);
     return { action: 'unknown', message: 'Could not parse response' };
   }
 }
@@ -365,11 +375,17 @@ export default async function handler(req, res) {
           end: { date: intent.date },
         };
       } else {
+        // Default to 1 hour duration if no end time was specified
+        let endTime = intent.endTime;
+        if (!endTime && intent.startTime) {
+          const [h, m] = intent.startTime.split(':').map(Number);
+          endTime = `${String(h + 1).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
         eventBody = {
           summary: intent.title,
           description: intent.description || `Added via Telegram by ${message.from.first_name}`,
           start: { dateTime: `${intent.date}T${intent.startTime}:00`, timeZone: TIMEZONE },
-          end: { dateTime: `${intent.date}T${intent.endTime}:00`, timeZone: TIMEZONE },
+          end: { dateTime: `${intent.date}T${endTime}:00`, timeZone: TIMEZONE },
         };
       }
 
