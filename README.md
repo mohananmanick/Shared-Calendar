@@ -99,17 +99,22 @@ Commands:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `APP_URL` | Recommended | Your deployed URL (e.g., `https://shared-calendar-delta.vercel.app`). Must match the redirect URI in Google Cloud Console. Falls back to `VERCEL_URL` if unset. |
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
 | `GOOGLE_ACCESS_TOKEN` | Yes | OAuth access token |
 | `GOOGLE_REFRESH_TOKEN` | Yes | OAuth refresh token (for auto-renewal) |
-| `CALENDAR_ID_1` | Yes | First person's Google Calendar ID |
-| `CALENDAR_ID_2` | No | Second person's Google Calendar ID |
+| `CALENDAR_ID_1` | Yes | Your (person 1) primary Google Calendar ID — default write target for the bot |
+| `CALENDAR_ID_2_MAIN` | No | Partner's main calendar ID (Gmail address) |
+| `CALENDAR_ID_2_SOCIAL` | No | Partner's Socialising calendar ID |
+| `CALENDAR_ID_2_WORK` | No | Partner's Work calendar ID |
+| `CALENDAR_ID_2_CCA` | No | Partner's CCA calendar ID |
 | `PERSON_1_NAME` | No | Display name for person 1 |
 | `PERSON_2_NAME` | No | Display name for person 2 |
 | `TELEGRAM_BOT_TOKEN` | Yes | Telegram bot token from BotFather |
 | `ANTHROPIC_API_KEY` | Yes | For AI event parsing |
-| `ALLOWED_TELEGRAM_USERS` | No | Comma-separated Telegram user IDs |
+| `ALLOWED_TELEGRAM_USERS` | No | Comma-separated Telegram user IDs allowed to use the bot |
+| `TELEGRAM_USER_<id>_CALENDAR` | No | Maps a Telegram user ID to their calendar. E.g. `TELEGRAM_USER_123456_CALENDAR=you@gmail.com`. Falls back to `CALENDAR_ID_1` if unset. |
 
 ## Token Refresh
 

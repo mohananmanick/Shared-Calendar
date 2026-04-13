@@ -113,6 +113,17 @@ async function searchEvents(token, calendarId, query, daysAhead = 30) {
   return events.filter(e => (e.summary || '').toLowerCase().includes(q));
 }
 
+// ---- User → calendar routing ----
+
+function getCalendarForUser(userId) {
+  const calendarId = process.env[`TELEGRAM_USER_${userId}_CALENDAR`];
+  if (!calendarId) {
+    console.warn(`[telegram] No calendar mapped for user ${userId}, falling back to CALENDAR_ID_1`);
+    return process.env.CALENDAR_ID_1;
+  }
+  return calendarId;
+}
+
 // ---- Formatting helpers ----
 
 function formatEventForTelegram(event, index) {
@@ -241,7 +252,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY, CALENDAR_ID_1 } = process.env;
+  const { TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY } = process.env;
   const ALLOWED_USERS = (process.env.ALLOWED_TELEGRAM_USERS || '').split(',').map(s => s.trim());
 
   const update = req.body;
@@ -251,6 +262,7 @@ export default async function handler(req, res) {
   const chatId = message.chat.id;
   const userId = String(message.from.id);
   const text = message.text.trim();
+  const calendarId = getCalendarForUser(userId);
 
   // Auth check
   if (ALLOWED_USERS.length > 0 && ALLOWED_USERS[0] !== '' && !ALLOWED_USERS.includes(userId)) {
@@ -295,7 +307,7 @@ export default async function handler(req, res) {
   if (text === '/today') {
     const token = await getValidToken();
     const { start, end } = getTodayRange();
-    const events = await listEvents(token, CALENDAR_ID_1, start, end);
+    const events = await listEvents(token, calendarId, start, end);
     if (events.length === 0) {
       await sendMsg(TELEGRAM_BOT_TOKEN, chatId, '📅 No events today! Enjoy your free day.');
     } else {
@@ -308,7 +320,7 @@ export default async function handler(req, res) {
   if (text === '/tomorrow') {
     const token = await getValidToken();
     const { start, end } = getTomorrowRange();
-    const events = await listEvents(token, CALENDAR_ID_1, start, end);
+    const events = await listEvents(token, calendarId, start, end);
     if (events.length === 0) {
       await sendMsg(TELEGRAM_BOT_TOKEN, chatId, '📅 Nothing scheduled for tomorrow.');
     } else {
@@ -321,7 +333,7 @@ export default async function handler(req, res) {
   if (text === '/week') {
     const token = await getValidToken();
     const { start, end } = getWeekRange();
-    const events = await listEvents(token, CALENDAR_ID_1, start, end);
+    const events = await listEvents(token, calendarId, start, end);
     if (events.length === 0) {
       await sendMsg(TELEGRAM_BOT_TOKEN, chatId, '📅 Nothing scheduled this week.');
     } else {
@@ -338,7 +350,7 @@ export default async function handler(req, res) {
     const token = await getValidToken();
 
     // Get upcoming events for context (so Claude can match event names)
-    const upcoming = await searchEvents(token, CALENDAR_ID_1, null, 60);
+    const upcoming = await searchEvents(token, calendarId, null, 60);
     const intent = await parseUserIntent(text, ANTHROPIC_API_KEY, upcoming);
 
     // ---- HANDLE ACTIONS ----
@@ -361,7 +373,7 @@ export default async function handler(req, res) {
         };
       }
 
-      const created = await createEvent(token, CALENDAR_ID_1, eventBody);
+      const created = await createEvent(token, calendarId, eventBody);
       if (created) {
         const timeStr = intent.allDay ? `📅 ${intent.date} (all day)` : `🕐 ${intent.startTime} — ${intent.endTime}`;
         await sendMsg(TELEGRAM_BOT_TOKEN, chatId,
@@ -378,7 +390,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
 
-      const success = await deleteEvent(token, CALENDAR_ID_1, intent.eventId);
+      const success = await deleteEvent(token, calendarId, intent.eventId);
       if (success) {
         await sendMsg(TELEGRAM_BOT_TOKEN, chatId, `🗑 Deleted: "${intent.title}"`);
       } else {
@@ -406,7 +418,7 @@ export default async function handler(req, res) {
       if (changes.date || changes.startTime || changes.endTime) {
         // Get current event to preserve existing times if only date or only time changes
         const getRes = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID_1)}/events/${intent.eventId}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${intent.eventId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const current = await getRes.json();
@@ -433,7 +445,7 @@ export default async function handler(req, res) {
         updates.end = { dateTime: `${newDate}T${newEnd}:00`, timeZone: TIMEZONE };
       }
 
-      const updated = await updateEvent(token, CALENDAR_ID_1, intent.eventId, updates);
+      const updated = await updateEvent(token, calendarId, intent.eventId, updates);
       if (updated) {
         const changeList = [];
         if (changes.summary) changeList.push(`Title → "${changes.summary}"`);
@@ -472,7 +484,7 @@ export default async function handler(req, res) {
         timeMin = r.start; timeMax = r.end; label = "This week";
       }
 
-      const events = await listEvents(token, CALENDAR_ID_1, timeMin, timeMax);
+      const events = await listEvents(token, calendarId, timeMin, timeMax);
       if (events.length === 0) {
         await sendMsg(TELEGRAM_BOT_TOKEN, chatId, `📅 No events for: ${label}`);
       } else {
@@ -482,7 +494,7 @@ export default async function handler(req, res) {
     }
 
     else if (intent.action === 'search') {
-      const results = await searchEvents(token, CALENDAR_ID_1, intent.query, 60);
+      const results = await searchEvents(token, calendarId, intent.query, 60);
       if (results.length === 0) {
         await sendMsg(TELEGRAM_BOT_TOKEN, chatId, `🔍 No events found matching "${intent.query}"`);
       } else {

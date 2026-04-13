@@ -2,7 +2,11 @@
 
 export default async function handler(req, res) {
   const { GOOGLE_CLIENT_ID } = process.env;
-  const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
+  const appUrl = process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (!appUrl) {
+    return res.status(500).json({ error: 'APP_URL or VERCEL_URL environment variable must be set' });
+  }
+  const redirectUri = `${appUrl}/api/auth/callback`;
 
   const scopes = [
     'https://www.googleapis.com/auth/calendar.readonly',

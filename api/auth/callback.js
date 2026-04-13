@@ -8,8 +8,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No authorization code provided' });
   }
 
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, VERCEL_URL } = process.env;
-  const redirectUri = `${process.env.APP_URL}/api/auth/callback`;
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+  const appUrl = process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (!appUrl) {
+    return res.status(500).json({ error: 'APP_URL or VERCEL_URL environment variable must be set' });
+  }
+  const redirectUri = `${appUrl}/api/auth/callback`;
 
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

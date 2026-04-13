@@ -48,7 +48,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
-  const { GOOGLE_ACCESS_TOKEN, CALENDAR_ID_1, PERSON_1_NAME, PERSON_2_NAME } = process.env;
+  const {
+    GOOGLE_ACCESS_TOKEN, CALENDAR_ID_1, PERSON_1_NAME, PERSON_2_NAME,
+    CALENDAR_ID_2_MAIN, CALENDAR_ID_2_SOCIAL, CALENDAR_ID_2_WORK, CALENDAR_ID_2_CCA,
+  } = process.env;
 
   if (!GOOGLE_ACCESS_TOKEN && !process.env.GOOGLE_REFRESH_TOKEN) {
     return res.status(200).json({
@@ -62,11 +65,12 @@ export default async function handler(req, res) {
     { id: CALENDAR_ID_1, label: 'Mohan', color: 'accent-1', person: PERSON_1_NAME || 'Mohan' },
   ];
 
+  // IDs are read from env vars — calendars with no ID set are silently skipped
   const person2Calendars = [
-    { id: 'gejashreya@gmail.com', label: 'Main', color: 'accent-2', person: PERSON_2_NAME || 'Shreya' },
-    { id: 'dceb8f398265fdef016630832be610b18467c5a410904b021da393f6ed9358d4@group.calendar.google.com', label: 'Socialising', color: 'accent-3', person: PERSON_2_NAME || 'Shreya' },
-    { id: '754513285509164f7d82909d4ee317c81088f41dfb3979811f5770a821b26d2e@group.calendar.google.com', label: 'Work', color: 'accent-4', person: PERSON_2_NAME || 'Shreya' },
-    { id: 'fd99f09c7f88473421d682b962f03039beb5c229d4ce115bf27f699b7d4f65c0@group.calendar.google.com', label: 'CCA', color: 'accent-5', person: PERSON_2_NAME || 'Shreya' },
+    { id: CALENDAR_ID_2_MAIN,   label: 'Main',        color: 'accent-2', person: PERSON_2_NAME || 'Shreya' },
+    { id: CALENDAR_ID_2_SOCIAL, label: 'Socialising', color: 'accent-3', person: PERSON_2_NAME || 'Shreya' },
+    { id: CALENDAR_ID_2_WORK,   label: 'Work',        color: 'accent-4', person: PERSON_2_NAME || 'Shreya' },
+    { id: CALENDAR_ID_2_CCA,    label: 'CCA',         color: 'accent-5', person: PERSON_2_NAME || 'Shreya' },
   ];
 
   const allCalendars = [...person1Calendars, ...person2Calendars];
