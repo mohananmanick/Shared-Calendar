@@ -105,10 +105,7 @@ Commands:
 | `GOOGLE_ACCESS_TOKEN` | Yes | OAuth access token |
 | `GOOGLE_REFRESH_TOKEN` | Yes | OAuth refresh token (for auto-renewal) |
 | `CALENDAR_ID_1` | Yes | Your (person 1) primary Google Calendar ID — default write target for the bot |
-| `CALENDAR_ID_2_MAIN` | No | Partner's main calendar ID (Gmail address) |
-| `CALENDAR_ID_2_SOCIAL` | No | Partner's Socialising calendar ID |
-| `CALENDAR_ID_2_WORK` | No | Partner's Work calendar ID |
-| `CALENDAR_ID_2_CCA` | No | Partner's CCA calendar ID |
+| `PERSON_2_CALENDARS` | No | JSON array of partner's calendars. E.g. `[{"id":"partner@gmail.com","label":"Main"},{"id":"abc@group.calendar.google.com","label":"Work"}]` |
 | `PERSON_1_NAME` | No | Display name for person 1 |
 | `PERSON_2_NAME` | No | Display name for person 2 |
 | `TELEGRAM_BOT_TOKEN` | Yes | Telegram bot token from BotFather |
